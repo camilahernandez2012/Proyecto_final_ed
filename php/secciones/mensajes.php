@@ -9,11 +9,11 @@ if (!$usuarioId) {
 }
 
 $res = $conn->query("
-  SELECT m.contenido, m.fecha, u.nombre AS remitente
+  SELECT m.contenido, m.fecha_envio, u.nombre AS remitente
   FROM mensajes m
   JOIN usuarios u ON m.de_id = u.id
   WHERE m.para_id = $usuarioId
-  ORDER BY m.fecha DESC
+  ORDER BY m.fecha_envio DESC
 ");
 ?>
 
@@ -28,7 +28,7 @@ $res = $conn->query("
         <div class="list-group-item">
           <h5 class="mb-1">De: <?= htmlspecialchars($m['remitente']) ?></h5>
           <p class="mb-1"><?= nl2br(htmlspecialchars($m['contenido'])) ?></p>
-          <small class="text-muted"><?= $m['fecha'] ?></small>
+          <small class="text-muted"><?= $m['fecha_envio'] ?></small>
         </div>
       <?php endwhile; ?>
     </div>

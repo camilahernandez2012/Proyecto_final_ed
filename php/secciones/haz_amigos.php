@@ -42,9 +42,10 @@ foreach ($usuarios as $u1) {
   }
 }
 
+// Obtener sugerencias
 $sugeridos = $grafo->sugerenciasAmistad($usuarioId);
 
-// Búsqueda de usuarios
+// Buscar usuarios manualmente
 $filtro = trim($_GET['filtro'] ?? '');
 $usuariosEncontrados = [];
 if ($filtro !== '') {

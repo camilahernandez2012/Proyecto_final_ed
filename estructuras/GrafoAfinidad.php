@@ -17,28 +17,31 @@ class GrafoAfinidad
     }
 
     public function sugerenciasAmistad($usuarioId)
-    {
-        if (!isset($this->nodos[$usuarioId])) {
-            return [];
-        }
-
-        $sugerencias = [];
-
-        foreach ($this->nodos as $otroId => $conexiones) {
-            if ($otroId == $usuarioId) continue;
-
-            if (isset($this->nodos[$usuarioId][$otroId])) {
-                continue;
-            }
-
-            $comunes = array_intersect_key($this->nodos[$usuarioId], $conexiones);
-            if (count($comunes) > 0) {
-                $sugerencias[] = $otroId;
-            }
-        }
-
-        return $sugerencias;
+{
+    if (!isset($this->nodos[$usuarioId])) {
+        return [];
     }
+
+    $sugerencias = [];
+
+    foreach ($this->nodos as $otroId => $conexiones) {
+        if ($otroId == $usuarioId) continue;
+
+        // Ya es amigo
+        if (isset($this->nodos[$usuarioId][$otroId])) {
+            continue;
+        }
+
+        // Ver si tienen amigos en común
+        $amigosEnComun = array_intersect_key($this->nodos[$usuarioId], $conexiones);
+        if (count($amigosEnComun) >= 1) {
+            $sugerencias[] = $otroId;
+        }
+    }
+
+    return $sugerencias;
+}
+
 
     public function exportarConexiones()
 {

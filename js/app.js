@@ -8,23 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
       loadPage(event.state.page);
     }
   });
-
-  document.getElementById("form-mensaje")?.addEventListener("submit", function (e) {
-  e.preventDefault();
-  const para = document.getElementById("mensaje-para").value;
-  const mensaje = document.getElementById("mensaje-texto").value;
-  const estado = document.getElementById("mensaje-estado");
-
-  fetch("php/secciones/enviar_mensaje.php", {
-    method: "POST",
-    body: new URLSearchParams({ para, mensaje })
-  })
-    .then(res => res.text())
-    .then(data => {
-      estado.innerText = data;
-    });
-});
-
 });
 
 function checkSession() {
@@ -46,7 +29,32 @@ function loadPage(page) {
     .then(res => res.text())
     .then(html => {
       document.getElementById("app-container").innerHTML = html;
-      if (page === "panel") initPanel();
+      if (page === "panel") {
+        initPanel();
+
+        // Inicializar formulario de mensaje una vez cargado el DOM
+        setTimeout(() => {
+          const form = document.getElementById("form-mensaje");
+          if (form) {
+            form.addEventListener("submit", function (e) {
+              e.preventDefault();
+              const para = document.getElementById("mensaje-para").value;
+              const mensaje = document.getElementById("mensaje-texto").value;
+              const estado = document.getElementById("mensaje-estado");
+
+              fetch("php/secciones/enviar_mensaje.php", {
+                method: "POST",
+                body: new URLSearchParams({ para, mensaje })
+              })
+                .then(res => res.text())
+                .then(data => {
+                  estado.innerText = data;
+                });
+            });
+          }
+        }, 100);
+      }
+
       if (page === "login") initLogin();
       if (page === "registro") initRegistro();
       if (page === "panel_admin") initAdminPanel();
@@ -57,10 +65,6 @@ function navegarA(page) {
   history.pushState({ page: page }, "", `#${page}`);
   loadPage(page);
 }
-
-//////////////////////////////
-// Inicializadores por página
-//////////////////////////////
 
 function initLogin() {
   const form = document.getElementById("form-login");
@@ -113,7 +117,6 @@ function initRegistro() {
 
 function initPanel() {
   cargarSeccion("catalogo");
-
 }
 
 function cargarSeccion(nombre) {
@@ -125,190 +128,45 @@ function cargarSeccion(nombre) {
       if (nombre === "historial") initHistorial();
       if (nombre === "recomendaciones") initRecomendaciones();
       if (nombre === "haz_amigos") initHazAmigos();
+      if (nombre === "mensajes") initMensajes();
     });
 }
 
-function cargarSeccionAdmin(nombre) {
-  fetch(`php/admin/${nombre}.php`)
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById("contenido-panel-admin").innerHTML = html;
-
-      if (nombre === "libros") {
-        initAdminLibros();
-      }
-
-      if (nombre === "usuarios") {
-        initAdminUsuarios();
-
-        // ✅ Registrar función global para búsqueda de lectores
-        window.filtrarLectores = function () {
-          const filtro = document.getElementById("busqueda-lector")?.value.trim();
-          const url = "php/admin/usuarios.php" + (filtro ? `?filtro=${encodeURIComponent(filtro)}` : "");
-
-          fetch(url)
-            .then(res => res.text())
-            .then(html => {
-              document.getElementById("contenido-panel-admin").innerHTML = html;
-              initAdminUsuarios(); // Reiniciar eventos si es necesario
-            });
-        };
-      }
-
-      if (nombre === "grafo") {
-        // ⚠️ No cargar PHP directamente como vista, sino usar contenedor y JS para el grafo
-        document.getElementById("contenido-panel-admin").innerHTML = `
-          <h3 class="mt-4">🔗 Red de Afinidad entre Lectores</h3>
-          <div id="grafo-container" style="width:100%; height:500px; border:1px solid #ccc;"></div>
-        `;
-        fetch("php/admin/grafo.php")
-          .then(res => res.json())
-          .then(data => dibujarGrafo(data));
-      }
-
-      if (nombre === "estadisticas") {
-        setTimeout(() => {
-          const el = document.getElementById("datos-estadisticas");
-
-          const prestadosLabels = JSON.parse(el?.dataset.prestadosLabels || "[]");
-          const prestadosData = JSON.parse(el?.dataset.prestadosData || "[]");
-          const valoradosLabels = JSON.parse(el?.dataset.valoradosLabels || "[]");
-          const valoradosData = JSON.parse(el?.dataset.valoradosData || "[]");
-
-          console.log("📈 Datos de préstamos:", prestadosLabels, prestadosData);
-          console.log("⭐ Datos de valoraciones:", valoradosLabels, valoradosData);
-
-          if (prestadosLabels && prestadosLabels.length > 0) {
-            new Chart(document.getElementById('graficoPrestados'), {
-              type: 'pie',
-              data: {
-                labels: prestadosLabels,
-                datasets: [{
-                  label: 'Préstamos',
-                  data: prestadosData,
-                  backgroundColor: ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8']
-                }]
-              }
-            });
-          }
-
-          if (valoradosLabels && valoradosLabels.length > 0) {
-            new Chart(document.getElementById('graficoValorados'), {
-              type: 'pie',
-              data: {
-                labels: valoradosLabels,
-                datasets: [{
-                  label: 'Valoraciones',
-                  data: valoradosData,
-                  backgroundColor: ['#6f42c1', '#fd7e14', '#20c997', '#6610f2', '#e83e8c']
-                }]
-              }
-            });
-          }
-        }, 100);
-      }
-    });
+function initMensajes() {
+  // Podrías agregar lógica extra si lo necesitas
 }
 
+function initHazAmigos() {
+  const input = document.getElementById("input-busqueda");
+  const boton = document.getElementById("btn-buscar");
+  const contenedor = document.getElementById("resultados-busqueda");
 
+  boton.addEventListener("click", () => {
+    const q = input.value.trim();
+    if (q === "") return;
 
-function initAdminPanel() {
-  cargarSeccionAdmin("libros");
-
-  fetch("php/admin/grafo.php")
-    .then(res => res.json())
-    .then(data => dibujarGrafo(data));
+    fetch(`php/secciones/buscar_usuarios.php?q=${encodeURIComponent(q)}`)
+      .then(res => res.text())
+      .then(html => {
+        contenedor.innerHTML = html;
+      });
+  });
 }
 
-function cerrarSesion() {
-  fetch("php/logout.php").then(() => location.reload());
-}
+function enviarMensaje(paraId) {
+  const inputPara = document.getElementById("mensaje-para");
+  const textarea = document.getElementById("mensaje-texto");
+  const estado = document.getElementById("mensaje-estado");
 
-function initAdminLibros() {
-  const form = document.getElementById("form-agregar-libro");
-  if (form) {
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const formData = new FormData(form);
-      fetch("php/admin/agregar_libro.php", {
-        method: "POST",
-        body: formData
-      })
-        .then(res => res.text())
-        .then(data => {
-          alert(data);
-          cargarSeccionAdmin("libros");
-        });
-    });
+  if (!inputPara || !textarea || !estado) {
+    alert("Error: el modal de mensajes no está disponible.");
+    return;
   }
 
-  const botonesEliminar = document.querySelectorAll("button.btn-danger");
-  botonesEliminar.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("onclick").match(/\d+/)[0];
-      eliminarLibro(id);
-    });
-  });
-}
-
-function eliminarLibro(id) {
-  if (!confirm("¿Estás segura de eliminar este libro?")) return;
-  fetch("php/admin/eliminar_libro.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: "id=" + id
-  })
-    .then(res => res.text())
-    .then(data => {
-      alert(data);
-      cargarSeccionAdmin("libros");
-    });
-}
-
-function initAdminUsuarios() {
-  const botones = document.querySelectorAll("button.btn-danger");
-  botones.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("onclick").match(/\d+/)[0];
-      eliminarUsuario(id);
-    });
-  });
-}
-
-function filtrarLectores() {
-  const filtro = document.getElementById("busqueda-lector")?.value.trim();
-  const url = "php/admin/usuarios.php" + (filtro ? `?filtro=${encodeURIComponent(filtro)}` : "");
-
-  fetch(url)
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById("contenido-panel-admin").innerHTML = html;
-    });
-}
-
-
-function eliminarUsuario(id) {
-  if (!confirm("¿Estás segura de eliminar este usuario?")) return;
-  fetch("php/admin/eliminar_usuario.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: "id=" + id
-  })
-    .then(res => res.text())
-    .then(data => {
-      alert(data);
-      cargarSeccionAdmin("usuarios");
-    });
-}
-
-function verDetallesUsuario(id) {
-  fetch(`php/admin/detalles_usuario.php?id=${id}`)
-    .then(res => res.text())
-    .then(html => {
-      const contenedor = document.createElement("div");
-      contenedor.innerHTML = html;
-      document.getElementById("contenido-panel-admin").innerHTML = contenedor.innerHTML;
-    });
+  inputPara.value = paraId;
+  textarea.value = "";
+  estado.innerText = "";
+  new bootstrap.Modal(document.getElementById("modalMensaje")).show();
 }
 
 function initCatalogo() {
@@ -378,11 +236,6 @@ function unirseCola(libroId, btn) {
     });
 }
 
-
-function initHistorial() {
-  // Nada extra aún, pero sirve como hook
-}
-
 function devolverLibro(libroId) {
   if (!confirm("¿Seguro que deseas devolver este libro?")) return;
 
@@ -411,42 +264,114 @@ function valorarLibro(libroId, valor) {
     });
 }
 
-function initHazAmigos() {
-  console.log("Haz amigos cargado");
+function initHistorial() {}
 
-  const input = document.getElementById("input-busqueda");
-  const boton = document.getElementById("btn-buscar");
-  const contenedor = document.getElementById("resultados-busqueda");
+function initRecomendaciones() {}
 
-  boton.addEventListener("click", () => {
-    const q = input.value.trim();
-    if (q === "") return;
+function initAdminPanel() {
+  cargarSeccionAdmin("libros");
 
-    fetch(`php/secciones/buscar_usuarios.php?q=${encodeURIComponent(q)}`)
-      .then(res => res.text())
-      .then(html => {
-        contenedor.innerHTML = html;
-      });
+  fetch("php/admin/grafo.php")
+    .then(res => res.json())
+    .then(data => dibujarGrafo(data));
+}
+
+function cargarSeccionAdmin(nombre) {
+  fetch(`php/admin/${nombre}.php`)
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById("contenido-panel-admin").innerHTML = html;
+
+      if (nombre === "libros") initAdminLibros();
+      if (nombre === "usuarios") initAdminUsuarios();
+
+      if (nombre === "grafo") {
+        document.getElementById("contenido-panel-admin").innerHTML = `
+          <h3 class="mt-4">🔗 Red de Afinidad entre Lectores</h3>
+          <div id="grafo-container" style="width:100%; height:500px; border:1px solid #ccc;"></div>
+        `;
+        fetch("php/admin/grafo.php")
+          .then(res => res.json())
+          .then(data => dibujarGrafo(data));
+      }
+    });
+}
+
+function cerrarSesion() {
+  fetch("php/logout.php").then(() => location.reload());
+}
+
+function initAdminLibros() {
+  const form = document.getElementById("form-agregar-libro");
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      fetch("php/admin/agregar_libro.php", {
+        method: "POST",
+        body: formData
+      })
+        .then(res => res.text())
+        .then(data => {
+          alert(data);
+          cargarSeccionAdmin("libros");
+        });
+    });
+  }
+
+  const botonesEliminar = document.querySelectorAll("button.btn-danger");
+  botonesEliminar.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("onclick").match(/\d+/)[0];
+      eliminarLibro(id);
+    });
   });
 }
 
-function enviarMensaje(paraId) {
-  const inputPara = document.getElementById("mensaje-para");
-  const textarea = document.getElementById("mensaje-texto");
-  const estado = document.getElementById("mensaje-estado");
+function eliminarLibro(id) {
+  if (!confirm("¿Estás segura de eliminar este libro?")) return;
+  fetch("php/admin/eliminar_libro.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "id=" + id
+  })
+    .then(res => res.text())
+    .then(data => {
+      alert(data);
+      cargarSeccionAdmin("libros");
+    });
+}
 
-  inputPara.value = paraId;
-  textarea.value = "";
-  estado.innerText = "";
-  new bootstrap.Modal(document.getElementById("modalMensaje")).show();
+function initAdminUsuarios() {
+  const botones = document.querySelectorAll("button.btn-danger");
+  botones.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("onclick").match(/\d+/)[0];
+      eliminarUsuario(id);
+    });
+  });
+}
+
+function eliminarUsuario(id) {
+  if (!confirm("¿Estás segura de eliminar este usuario?")) return;
+  fetch("php/admin/eliminar_usuario.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "id=" + id
+  })
+    .then(res => res.text())
+    .then(data => {
+      alert(data);
+      cargarSeccionAdmin("usuarios");
+    });
 }
 
 function dibujarGrafo(data) {
   const container = document.getElementById("grafo-container");
   const width = container.offsetWidth;
-  const height = 400; // antes 500
+  const height = 400;
 
-  d3.select("#grafo-container").html(""); // limpiar
+  d3.select("#grafo-container").html("");
 
   const svg = d3.select("#grafo-container")
     .append("svg")
@@ -454,8 +379,8 @@ function dibujarGrafo(data) {
     .attr("height", height);
 
   const simulation = d3.forceSimulation(data.nodes)
-    .force("link", d3.forceLink(data.links).id(d => d.id).distance(80)) // más corto
-    .force("charge", d3.forceManyBody().strength(-200)) // menos repulsión
+    .force("link", d3.forceLink(data.links).id(d => d.id).distance(80))
+    .force("charge", d3.forceManyBody().strength(-200))
     .force("center", d3.forceCenter(width / 2, height / 2));
 
   const link = svg.append("g")
@@ -469,7 +394,7 @@ function dibujarGrafo(data) {
     .selectAll("circle")
     .data(data.nodes)
     .join("circle")
-    .attr("r", 10) // más pequeño
+    .attr("r", 10)
     .attr("fill", "#1f77b4")
     .call(drag(simulation));
 
@@ -516,10 +441,3 @@ function dibujarGrafo(data) {
       });
   }
 }
-
-
-
-
-
-
-

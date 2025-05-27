@@ -11,3 +11,27 @@
 </div>
 
 <div id="contenido-panel"></div>
+
+<div class="modal fade" id="modalMensaje" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="form-mensaje" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Enviar mensaje</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="mensaje-para">
+        <div class="mb-3">
+          <label for="mensaje-texto" class="form-label">Mensaje:</label>
+          <textarea id="mensaje-texto" class="form-control" required></textarea>
+        </div>
+        <div id="mensaje-estado" class="text-success small"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Enviar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
