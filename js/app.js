@@ -8,6 +8,23 @@ document.addEventListener("DOMContentLoaded", () => {
       loadPage(event.state.page);
     }
   });
+
+  document.getElementById("form-mensaje")?.addEventListener("submit", function (e) {
+  e.preventDefault();
+  const para = document.getElementById("mensaje-para").value;
+  const mensaje = document.getElementById("mensaje-texto").value;
+  const estado = document.getElementById("mensaje-estado");
+
+  fetch("php/secciones/enviar_mensaje.php", {
+    method: "POST",
+    body: new URLSearchParams({ para, mensaje })
+  })
+    .then(res => res.text())
+    .then(data => {
+      estado.innerText = data;
+    });
+});
+
 });
 
 function checkSession() {
@@ -117,11 +134,14 @@ function cargarSeccionAdmin(nombre) {
     .then(html => {
       document.getElementById("contenido-panel-admin").innerHTML = html;
 
-      if (nombre === "libros") initAdminLibros();
+      if (nombre === "libros") {
+        initAdminLibros();
+      }
+
       if (nombre === "usuarios") {
         initAdminUsuarios();
 
-        // ✅ Registrar función global para búsqueda
+        // ✅ Registrar función global para búsqueda de lectores
         window.filtrarLectores = function () {
           const filtro = document.getElementById("busqueda-lector")?.value.trim();
           const url = "php/admin/usuarios.php" + (filtro ? `?filtro=${encodeURIComponent(filtro)}` : "");
@@ -130,12 +150,23 @@ function cargarSeccionAdmin(nombre) {
             .then(res => res.text())
             .then(html => {
               document.getElementById("contenido-panel-admin").innerHTML = html;
+              initAdminUsuarios(); // Reiniciar eventos si es necesario
             });
         };
       }
 
+      if (nombre === "grafo") {
+        // ⚠️ No cargar PHP directamente como vista, sino usar contenedor y JS para el grafo
+        document.getElementById("contenido-panel-admin").innerHTML = `
+          <h3 class="mt-4">🔗 Red de Afinidad entre Lectores</h3>
+          <div id="grafo-container" style="width:100%; height:500px; border:1px solid #ccc;"></div>
+        `;
+        fetch("php/admin/grafo.php")
+          .then(res => res.json())
+          .then(data => dibujarGrafo(data));
+      }
+
       if (nombre === "estadisticas") {
-        // Esperar brevemente a que el DOM se actualice antes de usar Chart.js
         setTimeout(() => {
           const el = document.getElementById("datos-estadisticas");
 
@@ -143,7 +174,6 @@ function cargarSeccionAdmin(nombre) {
           const prestadosData = JSON.parse(el?.dataset.prestadosData || "[]");
           const valoradosLabels = JSON.parse(el?.dataset.valoradosLabels || "[]");
           const valoradosData = JSON.parse(el?.dataset.valoradosData || "[]");
-
 
           console.log("📈 Datos de préstamos:", prestadosLabels, prestadosData);
           console.log("⭐ Datos de valoraciones:", valoradosLabels, valoradosData);
@@ -175,14 +205,19 @@ function cargarSeccionAdmin(nombre) {
               }
             });
           }
-        }, 100); // Espera corta para asegurar que el DOM esté renderizado
+        }, 100);
       }
     });
 }
 
 
+
 function initAdminPanel() {
   cargarSeccionAdmin("libros");
+
+  fetch("php/admin/grafo.php")
+    .then(res => res.json())
+    .then(data => dibujarGrafo(data));
 }
 
 function cerrarSesion() {
@@ -394,6 +429,94 @@ function initHazAmigos() {
       });
   });
 }
+
+function enviarMensaje(paraId) {
+  const inputPara = document.getElementById("mensaje-para");
+  const textarea = document.getElementById("mensaje-texto");
+  const estado = document.getElementById("mensaje-estado");
+
+  inputPara.value = paraId;
+  textarea.value = "";
+  estado.innerText = "";
+  new bootstrap.Modal(document.getElementById("modalMensaje")).show();
+}
+
+function dibujarGrafo(data) {
+  const container = document.getElementById("grafo-container");
+  const width = container.offsetWidth;
+  const height = 400; // antes 500
+
+  d3.select("#grafo-container").html(""); // limpiar
+
+  const svg = d3.select("#grafo-container")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  const simulation = d3.forceSimulation(data.nodes)
+    .force("link", d3.forceLink(data.links).id(d => d.id).distance(80)) // más corto
+    .force("charge", d3.forceManyBody().strength(-200)) // menos repulsión
+    .force("center", d3.forceCenter(width / 2, height / 2));
+
+  const link = svg.append("g")
+    .attr("stroke", "#ccc")
+    .selectAll("line")
+    .data(data.links)
+    .join("line")
+    .attr("stroke-width", 1.5);
+
+  const node = svg.append("g")
+    .selectAll("circle")
+    .data(data.nodes)
+    .join("circle")
+    .attr("r", 10) // más pequeño
+    .attr("fill", "#1f77b4")
+    .call(drag(simulation));
+
+  const label = svg.append("g")
+    .selectAll("text")
+    .data(data.nodes)
+    .join("text")
+    .text(d => d.name)
+    .attr("font-size", "10px")
+    .attr("x", 12)
+    .attr("dy", 4);
+
+  simulation.on("tick", () => {
+    link
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
+
+    node
+      .attr("cx", d => d.x)
+      .attr("cy", d => d.y);
+
+    label
+      .attr("x", d => d.x + 10)
+      .attr("y", d => d.y);
+  });
+
+  function drag(sim) {
+    return d3.drag()
+      .on("start", (event, d) => {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) sim.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+  }
+}
+
 
 
 

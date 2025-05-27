@@ -57,10 +57,10 @@ if ($filtro !== '') {
 <div class="container">
   <h3 class="mb-4">🤝 Haz amigos</h3>
 
-  <form method="GET" class="mb-4 d-flex">
-    <input type="text" name="filtro" class="form-control me-2" placeholder="Buscar por nombre o email" value="<?= htmlspecialchars($filtro) ?>">
-    <button class="btn btn-primary">Buscar</button>
-  </form>
+  <div class="mb-4 d-flex">
+    <input type="text" id="input-busqueda" class="form-control me-2" placeholder="Buscar por nombre o email">
+    <button id="btn-buscar" class="btn btn-primary">Buscar</button>
+  </div>
 
   <h4 class="mt-5">👥 Sugerencias de amistad</h4>
   <?php if (empty($sugeridos)): ?>
@@ -85,23 +85,5 @@ if ($filtro !== '') {
   <?php endif; ?>
 
   <h5 class="mt-5">Buscar usuarios</h5>
-  <?php if ($filtro !== ''): ?>
-    <div class="row mt-3">
-      <?php if ($usuariosEncontrados && $usuariosEncontrados->num_rows > 0):
-        while ($u = $usuariosEncontrados->fetch_assoc()): ?>
-          <div class="col-md-6 mb-3">
-            <div class="card">
-              <div class="card-body">
-                <h5 class="card-title"><?= htmlspecialchars($u['nombre']) ?></h5>
-                <p class="card-text"><?= htmlspecialchars($u['email']) ?></p>
-                <button class="btn btn-outline-success btn-sm" onclick="enviarMensaje(<?= $u['id'] ?>)">💬 Enviar mensaje</button>
-              </div>
-            </div>
-          </div>
-        <?php endwhile;
-      else: ?>
-        <p class="text-muted">No se encontraron usuarios con ese nombre o email.</p>
-      <?php endif; ?>
-    </div>
-  <?php endif; ?>
+  <div id="resultados-busqueda" class="row mt-3"></div>
 </div>

@@ -39,4 +39,26 @@ class GrafoAfinidad
 
         return $sugerencias;
     }
+
+    public function exportarConexiones()
+{
+    $enlaces = [];
+    $vistos = [];
+
+    foreach ($this->nodos as $origen => $destinos) {
+        foreach ($destinos as $destino => $v) {
+            $clave = $origen < $destino ? "$origen-$destino" : "$destino-$origen";
+            if (!isset($vistos[$clave])) {
+                $enlaces[] = [
+                    "source" => $origen,
+                    "target" => $destino
+                ];
+                $vistos[$clave] = true;
+            }
+        }
+    }
+
+    return $enlaces;
+}
+
 }
